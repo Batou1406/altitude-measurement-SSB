@@ -1,72 +1,25 @@
 #include <Arduino.h>
 #include <CAN.h>
+#include <RadarBaumer.hpp>
 
+//---------------- GLOBAL VARIABLES --------------------------
 bool ledState = false;
-
-void SerialPrint(int packetLength){
-  Serial.print("We received a new packet of size ");
-  Serial.println(packetLength);
-
-  Serial.println(can1.read());
-  Serial.println(can1.read());
-  Serial.print(can1.read());
-  //for(int i = 0 ; i < packetLength; i++){
-  //  Serial.print(can1.read());
-  //}
-
-  Serial.println("");
-  Serial.println("");
-}
-
-void readBaumerheight(int packetLength){
-  if(packetLength != 8){
-    Serial.println("Oupsi, not a correct Baumer frame");
-    return;
-  }
-
-  uint8_t tempByte = 0;
-  uint8_t sensorStatus = 0;
-  uint8_t targetConfidence = 0;
-  uint64_t targetDistanceRaw = 0;
-  uint64_t targetSpeedRaw = 0;
-  float targetDistance = 0;
-  float targetSpeed = 0;
-
-  tempByte = can1.read();
-  sensorStatus = tempByte;
-
-  tempByte = can1.read();
-  targetConfidence = tempByte;
-
-  tempByte = can1.read();
-  targetDistanceRaw = tempByte;
-  tempByte = can1.read();
-  targetDistanceRaw += tempByte << 8;
-  tempByte = can1.read();
-  targetDistanceRaw += tempByte << 16;
-
-  Serial.print("Sensor Status :");
-  Serial.println(sensorStatus);
-  Serial.print("Target Confidence :");
-  Serial.println(targetConfidence);
-  Serial.println("Target Distance");
-  Serial.println(targetDistanceRaw);
-  Serial.println();
-}
+RadarBaumer radar;
 
 void setup()
 {
-
-    delay(5000);
     Serial.begin(9600);
     Serial.println("Setup");
 
+    // Initialise CAN1
     if(!can1.begin(250E3)){
       Serial.println("Starting CAN1 failed");
     }else{
       Serial.println("Starting CAN1 Succed");
-      can1.onReceive(readBaumerheight);
+      can1.onReceive(radar.readHeight);
     }
+
+    // Initialise CAN0
     if(!can0.begin(10000)){
       Serial.println("Starting CAN0 failed");
     }else{
@@ -96,5 +49,16 @@ void loop() {
     can1.endPacket();
     */
 
-    delay(100);
+    delay(500);
+    
+    Serial.print("Sensor Status :");
+    Serial.println(radar.sensorStatus);
+    Serial.print("Target Confidence :");
+    Serial.println(radar.targetConfidence);
+    Serial.print("Target Distance [mm]: ");
+    Serial.print(radar.targetDistance);
+    Serial.println();
+    Serial.print("Target Distance [mm/s] :");
+    Serial.println(radar.targetSpeed);
+    Serial.println();
 }
