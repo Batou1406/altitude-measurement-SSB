@@ -17,6 +17,8 @@ class RadarBaumer
     static float targetConfidence;
     static float targetDistance;
     static float targetSpeed;
+    static uint32_t canIDReceived;
+    static uint8_t rawData[8];
  
     private:
     static CANSAME5x* _instanceCAN;

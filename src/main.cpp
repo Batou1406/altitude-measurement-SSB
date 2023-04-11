@@ -8,26 +8,27 @@ RadarBaumer radar;
 
 void setup()
 {
-    Serial.begin(9600);
-    Serial.println("Setup");
+  Serial.begin(9600);
+  Serial.println("Setup");
 
-    // Initialise CAN1
-    if(!can1.begin(250E3)){
-      Serial.println("Starting CAN1 failed");
-    }else{
-      Serial.println("Starting CAN1 Succed");
-      can1.onReceive(radar.readHeight);
-    }
+  // Initialise CAN1
+  if(!can1.begin(250E3)){
+    Serial.println("Starting CAN1 failed");
+  }else{
+    Serial.println("Starting CAN1 Succed");
+    //can1.filterExtended(0x18C0FF80, 0);
+    can1.onReceive(radar.readHeight);
+  }
 
-    // Initialise CAN0
-    if(!can0.begin(10000)){
-      Serial.println("Starting CAN0 failed");
-    }else{
-      Serial.println("Starting CAN0 Succed");
-    }
+  // Initialise CAN0
+  if(!can0.begin(10000)){
+    Serial.println("Starting CAN0 failed");
+  }else{
+    Serial.println("Starting CAN0 Succed");
+  }
 
-    // Setup the general LED
-    pinMode(PB04, OUTPUT);
+  // Setup the general LED
+  pinMode(PB04, OUTPUT);
 }
 
 void loop() {
@@ -51,6 +52,14 @@ void loop() {
 
     delay(500);
     
+    Serial.print("packet ID : ");
+    Serial.println(radar.canIDReceived,HEX);
+    Serial.print("Raw data : ");
+    for(int i = 0; i<8; i++){
+      Serial.print(radar.rawData[i],HEX);
+      Serial.print(" ");
+    }
+    Serial.println(" ");
     Serial.print("Sensor Status :");
     Serial.println(radar.sensorStatus);
     Serial.print("Target Confidence :");
@@ -58,7 +67,7 @@ void loop() {
     Serial.print("Target Distance [mm]: ");
     Serial.print(radar.targetDistance);
     Serial.println();
-    Serial.print("Target Distance [mm/s] :");
+    Serial.print("Target speed [mm/s] :");
     Serial.println(radar.targetSpeed);
     Serial.println();
 }
