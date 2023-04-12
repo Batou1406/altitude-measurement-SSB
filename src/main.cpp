@@ -3,7 +3,9 @@
 #include <RadarBaumer.hpp>
 
 //--------------------- DEFINE -------------------------------
-#define BLINK_PERIOD_MS       500
+#define BLINK_PERIOD_MS                             500
+#define RadarAdressOnBoatCanLine                    443
+const int shouldRadarRepeatHeightOnBoatCanLine =  true;
 
 //---------------- GLOBAL VARIABLES --------------------------
 bool ledState = false;
@@ -30,10 +32,10 @@ void setup()
         Serial.println("Starting CAN0 failed");
     }else{
         Serial.println("Starting CAN0 Succed");
-        radar.attachBoatCanInstance(&can0,true,443);
+        radar.attachBoatCanInstance(&can0,shouldRadarRepeatHeightOnBoatCanLine,RadarAdressOnBoatCanLine);
     }
 
-    // Setup the general LED
+    // Setup the blink LED
     pinMode(PB04, OUTPUT);
 }
 
