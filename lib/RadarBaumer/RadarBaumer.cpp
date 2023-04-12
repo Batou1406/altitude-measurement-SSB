@@ -3,20 +3,44 @@
 
 #include <RadarBaumer.hpp>
 
+// Init object static variables
 CANSAME5x* RadarBaumer::_instanceCAN = nullptr;
-
+CANSAME5x* RadarBaumer::_instanceCAN_Boat = nullptr;
+int RadarBaumer::_radarAdressOnBoatCAN = 0;
 RadarStatus RadarBaumer::sensorStatus = NO_ERROR ;
 uint8_t RadarBaumer::canopyConfidence = 0;
 uint8_t RadarBaumer::groundConfidence = 0;
 uint16_t RadarBaumer::canopyDistance = 0;
-uint16_t RadarBaumer::groudDistance = 0;
+uint16_t RadarBaumer::groundDistance = 0;
 uint32_t RadarBaumer::canIDReceived = 0;
 uint8_t RadarBaumer::rawData[8] = {0,0,0,0,0,0,0,0};
+bool RadarBaumer::_repeatRadarHeightToBoatCAN = false;
 
-void RadarBaumer::attachCanInstance(CANSAME5x* instanceCAN){
-    _instanceCAN = instanceCAN;
+/*  funtion RadarBaumer::attachRadarCanInstance(CANSAME5x* instanceCAN_radar)
+ *
+ *  Attach the CAN instance where the radar is conncted : makes the library Hardware independent
+ */
+void RadarBaumer::attachRadarCanInstance(CANSAME5x* instanceCAN_Radar){
+    _instanceCAN = instanceCAN_Radar;
 }
 
+/*  function RadarBaumer::attachBoatCanInstance(CANSAME5x* instanceCAN_Boat)
+ *  
+ *  Attach CAN instance to where the rest of the boat is connected
+ *  Moreover, allows or not the data read from the radar to be repetead to the Boat CAN line
+ */
+void RadarBaumer::attachBoatCanInstance(CANSAME5x* instanceCAN_Boat, bool repeatRadarHeightToBoatCAN, int radarAdressOnBoatCAN){
+    _instanceCAN_Boat = instanceCAN_Boat;
+    _repeatRadarHeightToBoatCAN = repeatRadarHeightToBoatCAN;
+    _radarAdressOnBoatCAN = radarAdressOnBoatCAN;
+}
+
+/*  function RadarBaumer::readHeight(int packetLength)
+ *  
+ *  function to be attached to the can message On received callback
+ *  Each time a message is received from the radar, decode it, and store the new value
+ *  in the radarBaumer object
+ */
 void RadarBaumer::readHeight(int packetLength){
 
     // Read the packet ID
@@ -54,13 +78,31 @@ void RadarBaumer::readHeight(int packetLength){
         // Byte 2-3 : Canopy Distance
         canopyDistance = (uint16_t(rawData[3]) << 8) + uint16_t(rawData[2]);
 
-        // Byte 4-5 : Ground Distane
-        groudDistance = (uint16_t(rawData[5]) << 8) + uint16_t(rawData[4]);
+        // Byte 4-5 : Ground Distance
+        groundDistance = (uint16_t(rawData[5]) << 8) + uint16_t(rawData[4]);
 
+        if(_repeatRadarHeightToBoatCAN){
+            sendHeightToCANBoat();
+        }
     }else{
         Serial.println("Wrong packet ID...");
     }
 
 }
 
+/*  function RadarBaumer::sendHeightToCANBoat()
+ *  
+ *  Send the radar measurement to the boat CAN line
+ */
+void RadarBaumer::sendHeightToCANBoat(){
+    _instanceCAN_Boat->beginPacket(_radarAdressOnBoatCAN);
+    _instanceCAN_Boat->write(sensorStatus & 0x00FF);
+    _instanceCAN_Boat->write(canopyConfidence);
+    _instanceCAN_Boat->write(groundConfidence);
+    _instanceCAN_Boat->write((canopyDistance & 0x00FF));
+    _instanceCAN_Boat->write((canopyDistance & 0xFF00) >> 8);
+    _instanceCAN_Boat->write((groundDistance & 0x00FF));
+    _instanceCAN_Boat->write((groundDistance & 0xFF00) >> 8);
+    _instanceCAN_Boat->endPacket();
+}
 #endif // RADAR_BAUMER_CPP

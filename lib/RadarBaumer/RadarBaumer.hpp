@@ -18,18 +18,23 @@ enum RadarStatus{ //Check the datasheet for the specific meaning of the errors
 class RadarBaumer
 {
     public:
-    void attachCanInstance(CANSAME5x* instanceCAN);
+    void attachRadarCanInstance(CANSAME5x* instanceCAN_Radar);
+    void attachBoatCanInstance(CANSAME5x* instanceCAN_Boat, bool repeatRadarHeightToBoatCAN, int radarAdressOnBoatCAN);
     static void readHeight(int packetLength);
     static RadarStatus sensorStatus;
     static uint8_t canopyConfidence;
     static uint8_t groundConfidence;
     static uint16_t canopyDistance;
-    static uint16_t groudDistance;
+    static uint16_t groundDistance;
     static uint32_t canIDReceived;
     static uint8_t rawData[8];
  
     private:
+    static void sendHeightToCANBoat();
     static CANSAME5x* _instanceCAN;
+    static CANSAME5x* _instanceCAN_Boat;
+    static bool _repeatRadarHeightToBoatCAN;
+    static int _radarAdressOnBoatCAN;
 };
 
 #endif // RADAR_BAUMER_HPP
