@@ -1,3 +1,9 @@
+/*  Written by Baptiste Savioz
+ *  april 2023
+ *  
+ *  Library made for the radar Baumer R600V.DAE0
+ */
+
 #ifndef RADAR_BAUMER_HPP
 #define RADAR_BAUMER_HPP
 
