@@ -3,14 +3,19 @@
 
 #include <RadarBaumer.hpp>
 
-CANSAME5x* RadarBaumer::_instanceCAN = &can1;
+CANSAME5x* RadarBaumer::_instanceCAN = nullptr;
 
 RadarStatus RadarBaumer::sensorStatus = NO_ERROR ;
-float RadarBaumer::targetConfidence = 0;
-float RadarBaumer::targetDistance = 0;
-float RadarBaumer::targetSpeed = 0;
+uint8_t RadarBaumer::canopyConfidence = 0;
+uint8_t RadarBaumer::groundConfidence = 0;
+uint16_t RadarBaumer::canopyDistance = 0;
+uint16_t RadarBaumer::groudDistance = 0;
 uint32_t RadarBaumer::canIDReceived = 0;
 uint8_t RadarBaumer::rawData[8] = {0,0,0,0,0,0,0,0};
+
+void RadarBaumer::attachCanInstance(CANSAME5x* instanceCAN){
+    _instanceCAN = instanceCAN;
+}
 
 void RadarBaumer::readHeight(int packetLength){
 
@@ -25,97 +30,33 @@ void RadarBaumer::readHeight(int packetLength){
             return;
         }
 
-        // Declare temp storage variable
-        uint8_t tempByte = 0;
-        uint8_t sensorStatusRaw = 0;
-        uint8_t targetConfidenceRaw = 0;
-        uint32_t targetDistanceRaw = 0;
-        int16_t targetSpeedRaw = 0;
+        // Lecture du message CAN
+        uint8_t i = 0;
+        while(_instanceCAN->available()){
+            rawData[i] = _instanceCAN->read();
+            i += 1;
+        }
+        // Check for valid frame
+        if(i != 8){
+            Serial.print("Oupsi... Wrong frame received...");
+            return;
+        }
 
-        // Byte 0,1 : Target Speed
-        tempByte = _instanceCAN->read();
-        rawData[0] = tempByte;
-        targetSpeedRaw = tempByte;
-        
-        tempByte = _instanceCAN->read();
-        rawData[1] = tempByte;
-        targetSpeedRaw += tempByte << 8;
+        // Byte 0, bit 6-7 : Sensor Status
+        sensorStatus = RadarStatus(rawData[0] & 0b00000011);
 
-        targetSpeed = targetSpeedRaw*1.f + 32768; // mm/s
+        // Byte 0-1, bit 0-5, 15 : canopy confidence
+        canopyConfidence = (rawData[0] >> 2) + ((rawData[1] & 0b00000001) << 6);
 
-        // Byte 7 : Unused
-        rawData[7] = _instanceCAN->read();
+        // Byte 1, bit 8-14 : Ground Confidence
+        groundConfidence = (rawData[1] >> 1);
 
-        // Byte 2,3,4 : Target Distance
-        tempByte = _instanceCAN->read();
-        rawData[2] = tempByte;
-        targetDistanceRaw = tempByte;
+        // Byte 2-3 : Canopy Distance
+        canopyDistance = (uint16_t(rawData[3]) << 8) + uint16_t(rawData[2]);
 
-        tempByte = _instanceCAN->read();
-        rawData[3] = tempByte;
-        targetDistanceRaw += tempByte << 8;
-        
-        tempByte = _instanceCAN->read();
-        rawData[4] = tempByte;
-        targetDistanceRaw += tempByte << 16;
-        
-        targetDistance = targetDistanceRaw*0.1f; //mm
+        // Byte 4-5 : Ground Distane
+        groudDistance = (uint16_t(rawData[5]) << 8) + uint16_t(rawData[4]);
 
-        // Byte 5 : Target confidence
-        tempByte = _instanceCAN->read();
-        rawData[5] = tempByte;
-        targetConfidenceRaw = tempByte;
-
-        targetConfidence = targetConfidenceRaw*0.01f;
-
-       // Byte 6 : Sensor Status
-        tempByte = _instanceCAN->read();
-        rawData[6] = tempByte;
-        sensorStatusRaw = tempByte;
-
-        sensorStatus = RadarStatus(sensorStatusRaw);
-
-
-
-        // Byte 7 : Unused
-        rawData[7] = _instanceCAN->read();
-        
-        
-        /*
-        // Byte 0 : Sensor Status
-        tempByte = _instanceCAN->read();
-        sensorStatusRaw = tempByte;
-        sensorStatus = RadarStatus(sensorStatusRaw);
-
-        // Byte 1 : Target confidence
-        tempByte = _instanceCAN->read();
-        targetConfidenceRaw = tempByte;
-        targetConfidence = targetConfidenceRaw*0.01f;
-
-        // Byte 2,3,4 : Target Distance
-        tempByte = _instanceCAN->read();
-        targetDistanceRaw = tempByte;
-        Serial.print(tempByte);
-        Serial.print(" ");
-        tempByte = _instanceCAN->read();
-        targetDistanceRaw += tempByte << 8;
-        Serial.print(tempByte);
-        Serial.print(" ");
-        tempByte = _instanceCAN->read();
-        targetDistanceRaw += tempByte << 16;
-        Serial.println(tempByte);
-        targetDistance = targetConfidenceRaw*0.1f; //mm
-
-        // Byte 5 : Unused
-        _instanceCAN->read();
-
-        // Byte 6,7 : Target Speed
-        tempByte = _instanceCAN->read();
-        targetSpeedRaw = tempByte;
-        tempByte = _instanceCAN->read();
-        targetSpeedRaw += tempByte << 8;
-        targetSpeed = targetSpeedRaw*1.f; // mm/s
-        */
     }else{
         Serial.println("Wrong packet ID...");
     }

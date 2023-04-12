@@ -2,10 +2,15 @@
 #include <CAN.h>
 #include <RadarBaumer.hpp>
 
+//--------------------- DEFINE -------------------------------
+#define BLINK_PERIOD_MS       500
+
 //---------------- GLOBAL VARIABLES --------------------------
 bool ledState = false;
+unsigned long lastTime = 0;
 RadarBaumer radar;
 
+//---------------------- SETUP -------------------------------
 void setup()
 {
   Serial.begin(9600);
@@ -16,8 +21,8 @@ void setup()
     Serial.println("Starting CAN1 failed");
   }else{
     Serial.println("Starting CAN1 Succed");
-    //can1.filterExtended(0x18C0FF80, 0);
-    can1.onReceive(radar.readHeight);
+    radar.attachCanInstance(&can1);
+    can1.onReceive(radar.readHeight); // attach radarHeight to the receive callback
   }
 
   // Initialise CAN0
@@ -31,27 +36,15 @@ void setup()
   pinMode(PB04, OUTPUT);
 }
 
+//----------------------- Loop ---------------------------
 void loop() {
     //blink
-    if(ledState){
-      digitalWrite(PB04, LOW);
-      ledState = false;
-    }else{
-      digitalWrite(PB04, HIGH);
-      ledState = true;
-    }
+    if(millis() > lastTime + BLINK_PERIOD_MS) {
+      lastTime = millis();
+      ledState = !ledState;
+      digitalWrite(PB04, ledState);
     
-    /*
-    Serial.println("Start Sending");
-
-    can1.beginPacket(0x2);
-    can1.write(0x32);
-    can1.write(0X03);
-    can1.endPacket();
-    */
-
-    delay(500);
-    
+    // Print Radar Data
     Serial.print("packet ID : ");
     Serial.println(radar.canIDReceived,HEX);
     Serial.print("Raw data : ");
@@ -62,12 +55,14 @@ void loop() {
     Serial.println(" ");
     Serial.print("Sensor Status :");
     Serial.println(radar.sensorStatus);
-    Serial.print("Target Confidence :");
-    Serial.println(radar.targetConfidence);
-    Serial.print("Target Distance [mm]: ");
-    Serial.print(radar.targetDistance);
-    Serial.println();
-    Serial.print("Target speed [mm/s] :");
-    Serial.println(radar.targetSpeed);
-    Serial.println();
+    Serial.print("Canopy Confidence :");
+    Serial.println(radar.canopyConfidence);
+    Serial.print("Ground Confidence :");
+    Serial.println(radar.groundConfidence);
+    Serial.print("Canopy Distance [mm] :");
+    Serial.println(radar.canopyDistance);
+    Serial.print("Ground Distance [mm] :");
+    Serial.println(radar.groudDistance);
+    Serial.println(" ");
+    }
 }
