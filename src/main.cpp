@@ -1,22 +1,35 @@
 #include <Arduino.h>
 #include <CAN.h>
 #include <RadarBaumer.hpp>
+#include <Palpeur.hpp>
 
 //--------------------- DEFINE -------------------------------
 #define BLINK_PERIOD_MS                             500
+#define PalpeurAddressCAN                           442
 #define RadarAdressOnBoatCanLine                    443
 const int shouldRadarRepeatHeightOnBoatCanLine =  true;
+#define PALPEUR_CHIP_SELECT                        PB01 
+#define PALPEUR_DATA                               PB03
+#define PALPEUR_CLOCK                              PB02
+#define PALPEUR_OFFSET                              722
+#define F_VALUE_TO_RADIAN                           512  // Convert the feeler value to a radian value
+#define FEELER_LENGTH                              1445
+#define FIFTY_HERZ                                   19
+#define BLINK_LED                                  PB05
 
 //---------------- GLOBAL VARIABLES --------------------------
 bool ledState = false;
-unsigned long lastTime = 0;
+unsigned long lastBlink = 0;
+unsigned long lastPalpeurSend = 0;
 RadarBaumer radar;
+Palpeur palpeur(PALPEUR_OFFSET, FEELER_LENGTH, F_VALUE_TO_RADIAN, PALPEUR_CLOCK, PALPEUR_DATA, PALPEUR_CHIP_SELECT);
 
 //---------------------- SETUP -------------------------------
 void setup()
 {
     Serial.begin(9600);
     Serial.println("Setup");
+    palpeur.init();
 
     // Initialise CAN1
     if(!can1.begin(250E3)){
@@ -32,20 +45,21 @@ void setup()
         Serial.println("Starting CAN0 failed");
     }else{
         Serial.println("Starting CAN0 Succed");
+        palpeur.attachCANInstance(&can0, PalpeurAddressCAN);
         radar.attachBoatCanInstance(&can0,shouldRadarRepeatHeightOnBoatCanLine,RadarAdressOnBoatCanLine);
     }
 
     // Setup the blink LED
-    pinMode(PB04, OUTPUT);
+    pinMode(BLINK_LED, OUTPUT);
 }
 
-//----------------------- Loop ---------------------------
+//----------------------- LOOP -------------------------------
 void loop() {
-    //blink
-    if(millis() > lastTime + BLINK_PERIOD_MS) {
-        lastTime = millis();
+    //blink and print
+    if(millis() > lastBlink + BLINK_PERIOD_MS) {
+        lastBlink = millis();
         ledState = !ledState;
-        digitalWrite(PB04, ledState);
+        digitalWrite(BLINK_LED, ledState);
 
     // Print Radar Data
     Serial.print("packet ID : ");
@@ -56,7 +70,7 @@ void loop() {
         Serial.print(" ");
     }
     Serial.println(" ");
-    Serial.print("Sensor Status :");
+    Serial.print("Radar Status :");
     Serial.println(radar.sensorStatus);
     Serial.print("Canopy Confidence :");
     Serial.println(radar.canopyConfidence);
@@ -66,6 +80,15 @@ void loop() {
     Serial.println(radar.canopyDistance);
     Serial.print("Ground Distance [mm] :");
     Serial.println(radar.groundDistance);
-    Serial.println(" ");
+    Serial.print("palpeur height : ");
+    Serial.println(palpeur.altitude);
+    Serial.println("\n");
+    }
+
+    // Read and send plapeur
+    if(millis() > lastPalpeurSend + FIFTY_HERZ){
+        lastPalpeurSend = millis();
+        palpeur.makeMeasurement();
+        palpeur.sendHeightToCAN();
     }
 }
