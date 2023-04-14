@@ -61,28 +61,28 @@ void loop() {
         ledState = !ledState;
         digitalWrite(BLINK_LED, ledState);
 
-    // Print Radar Data
-    Serial.print("packet ID : ");
-    Serial.println(radar.canIDReceived,HEX);
-    Serial.print("Raw data : ");
-    for(int i = 0; i<8; i++){
-        Serial.print(radar.rawData[i],HEX);
-        Serial.print(" ");
-    }
-    Serial.println(" ");
-    Serial.print("Radar Status :");
-    Serial.println(radar.sensorStatus);
-    Serial.print("Canopy Confidence :");
-    Serial.println(radar.canopyConfidence);
-    Serial.print("Ground Confidence :");
-    Serial.println(radar.groundConfidence);
-    Serial.print("Canopy Distance [mm] :");
-    Serial.println(radar.canopyDistance);
-    Serial.print("Ground Distance [mm] :");
-    Serial.println(radar.groundDistance);
-    Serial.print("palpeur height : ");
-    Serial.println(palpeur.altitude);
-    Serial.println("\n");
+        // Print Radar Data
+        Serial.print("packet ID : ");
+        Serial.println(radar.canIDReceived,HEX);
+        Serial.print("Raw data : ");
+        for(int i = 0; i<8; i++){
+            Serial.print(radar.rawData[i],HEX);
+            Serial.print(" ");
+        }
+        Serial.println(" ");
+        Serial.print("Radar Status :");
+        Serial.println(radar.sensorStatus);
+        Serial.print("Canopy Confidence :");
+        Serial.println(radar.canopyConfidence);
+        Serial.print("Ground Confidence :");
+        Serial.println(radar.groundConfidence);
+        Serial.print("Canopy Distance [mm] :");
+        Serial.println(radar.canopyDistance);
+        Serial.print("Ground Distance [mm] :");
+        Serial.println(radar.groundDistance);
+        Serial.print("palpeur height : ");
+        Serial.println(palpeur.altitude);
+        Serial.println("\n");
     }
 
     // Read and send plapeur
